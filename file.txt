@@ -1,1 +1,4 @@
-
+Hello, Server!
+How are you today?
+This is a message from the client.
+Goodbye!
