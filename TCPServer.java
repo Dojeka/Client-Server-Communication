@@ -1,56 +1,85 @@
-   import java.io.*;
-   import java.net.*;
+import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.*;
 
-    public class TCPServer {
-       public static void main(String[] args) throws IOException {
-      	
-			// Variables for setting up connection and communication
-         Socket Socket = null; // socket to connect with ServerRouter
-         PrintWriter out = null; // for writing to ServerRouter
-         BufferedReader in = null; // for reading form ServerRouter
-			InetAddress addr = InetAddress.getLocalHost();
-			String host = addr.getHostAddress(); // Server machine's IP			
-			String routerName = "j263-08.cse1.spsu.edu"; // ServerRouter host name
-			int SockNum = 5555; // port number
-			
-			// Tries to connect to the ServerRouter
-         try {
-            Socket = new Socket(routerName, SockNum);
-            out = new PrintWriter(Socket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(Socket.getInputStream()));
-         } 
-             catch (UnknownHostException e) {
-               System.err.println("Don't know about router: " + routerName);
-               System.exit(1);
-            } 
-             catch (IOException e) {
-               System.err.println("Couldn't get I/O for the connection to: " + routerName);
-               System.exit(1);
+public class TCPServer {
+    public static void main(String[] args) {
+        // Configuration Parameters
+        String routerName = "j263-08.cse1.spsu.edu"; // ServerRouter host name
+        int routerPort = 5555; // ServerRouter port number
+        String clientAddress = "10.5.3.196"; // Destination Client IP
+
+        Socket routerSocket = null;
+        PrintWriter out = null;
+        BufferedReader in = null;
+
+        try {
+            // Obtain Server's IP Address
+            InetAddress serverInetAddress = InetAddress.getLocalHost();
+            String serverIP = serverInetAddress.getHostAddress();
+            System.out.println("Server IP Address: " + serverIP);
+
+            // Establish Connection to ServerRouter
+            routerSocket = new Socket(routerName, routerPort);
+            System.out.println("Connected to ServerRouter at " + routerName + ":" + routerPort);
+
+            // Initialize I/O Streams
+            out = new PrintWriter(routerSocket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(routerSocket.getInputStream()));
+
+            // Initial Communication with ServerRouter
+            // 1. Send Client's IP Address to Router
+            out.println(clientAddress);
+            System.out.println("Sent Client IP to ServerRouter: " + clientAddress);
+
+            // 2. Receive Verification from Router
+            String verificationMessage = in.readLine();
+            if (verificationMessage == null) {
+                System.err.println("ServerRouter closed the connection unexpectedly.");
+                return;
             }
-				
-      	// Variables for message passing			
-         String fromServer; // messages sent to ServerRouter
-         String fromClient; // messages received from ServerRouter      
- 			String address ="10.5.3.196"; // destination IP (Client)
-			
-			// Communication process (initial sends/receives)
-			out.println(address);// initial send (IP of the destination Client)
-			fromClient = in.readLine();// initial receive from router (verification of connection)
-			System.out.println("ServerRouter: " + fromClient);
-			         
-			// Communication while loop
-      	while ((fromClient = in.readLine()) != null) {
-            System.out.println("Client said: " + fromClient);
-            if (fromClient.equals("Bye.")) // exit statement
-					break;
-				fromServer = fromClient.toUpperCase(); // converting received message to upper case
-				System.out.println("Server said: " + fromServer);
-            out.println(fromServer); // sending the converted message back to the Client via ServerRouter
-         }
-			
-			// closing connections
-         out.close();
-         in.close();
-         Socket.close();
-      }
-   }
+            System.out.println("ServerRouter: " + verificationMessage);
+
+            // Communication Loop
+            String messageFromClient;
+            while ((messageFromClient = in.readLine()) != null) {
+                System.out.println("Client said: " + messageFromClient);
+
+                // Check for Termination Signal
+                if (messageFromClient.equalsIgnoreCase("Bye.")) {
+                    System.out.println("Termination signal received. Closing connection.");
+                    out.println("Bye."); // Optionally, send termination acknowledgment
+                    break;
+                }
+
+                // Process the Message (Convert to Uppercase)
+                String processedMessage = messageFromClient.toUpperCase();
+                System.out.println("Server said: " + processedMessage);
+
+                // Send the Processed Message Back to Client via Router
+                out.println(processedMessage);
+            }
+
+        } catch (UnknownHostException e) {
+            System.err.println("Unknown ServerRouter host: " + routerName);
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("I/O error occurred while communicating with ServerRouter.");
+            e.printStackTrace();
+        } finally {
+            // Close Resources
+            try {
+                if (out != null) out.close();
+                if (in != null) in.close();
+                if (routerSocket != null && !routerSocket.isClosed()) routerSocket.close();
+                System.out.println("Server connections closed.");
+            } catch (IOException e) {
+                System.err.println("Error while closing connections.");
+                e.printStackTrace();
+            }
+        }
+    }
+}
