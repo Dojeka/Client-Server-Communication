@@ -32,7 +32,7 @@ public class SThread extends Thread
 		// Initial sends/receives
 		destination = in.readLine(); // initial read (the destination for writing)
 		System.out.println("Forwarding to " + destination);
-		out.println("Connected to the router."); // confirmation of connection
+		System.out.println("Connected to the router."); // confirmation of connection
 		
 		// waits 10 seconds to let the routing table fill with all machines' information
 		try{
