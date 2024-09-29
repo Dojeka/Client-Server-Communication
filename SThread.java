@@ -54,9 +54,10 @@ public class SThread extends Thread
 		// Communication loop	
 		while ((inputLine = in.readLine()) != null) {
             System.out.println("Client/Server said: " + inputLine);
-            if (inputLine.equals("Bye.")) // exit statement
-					break;
-            outputLine = inputLine; // passes the input from the machine to the output string for the destination
+            if (inputLine.equals("Bye.")) { // exit statement
+				break;
+			}
+            outputLine = inputLine.toUpperCase(); // this is where the change should happen
 				
 				if ( outSocket != null){				
 				outTo.println(outputLine); // writes to the destination
