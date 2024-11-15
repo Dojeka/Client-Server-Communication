@@ -1,49 +1,58 @@
-   import java.io.*;
+ import java.io.*;
 import java.net.*;
-import java.util.Scanner;
+import java.util.Random;
 
-public class TCPClient {
+public class Client {
     public static void main(String[] args) throws IOException {
-        // Establish a connection to the router/server
-        Socket routerSocket = new Socket("localhost", 5555);
-        PrintWriter out = new PrintWriter(routerSocket.getOutputStream(), true);
-        BufferedReader in = new BufferedReader(new InputStreamReader(routerSocket.getInputStream()));
+        String serverIP = "192.168.1.64"; // Server IP
+        int serverPort = 5556; // Server port
+        int matrixSize = 1024; 
+        int matrixCount = 32; // Any power of 2
 
-        // Scanner for user input
-        Scanner scanner = new Scanner(System.in);
-        
-        // Variables for storing messages
-        String fromUser; // For user input
-        String fromServer; // For server response
+        // Inside MatrixClient main method
+        int[][][] matrices = new int[matrixCount][matrixSize][matrixSize];
 
-        InetAddress addr = InetAddress.getLocalHost();
-        String host = addr.getHostAddress(); // Server machine's IP
-        out.println(host);
-        // Communication loop
-        while (true) {
-            System.out.print("Enter message (type 'Bye.' to exit): ");
-            if (scanner.hasNextLine()) {
-                fromUser = scanner.nextLine();// reading strings from user input
-                if (fromUser != null) {
-                    System.out.println("Client: " + fromUser);
-                    out.println(fromUser); // sending the strings to the Server via ServerRouter
-                }
+        System.out.println("Generated matrices.");
 
-                fromServer = in.readLine(); // Read response from the server
-                if (fromServer == null || fromServer.equals("Bye.")) { // exit if the server sends "Bye."
-                    System.out.println("Server: " + fromServer);
-                    break;
-                }
+        for (int i = 0; i < matrixCount; i++) {
+            matrices[i] = generateMatrix(matrixSize);
+        }
 
-                System.out.println("Server: " + fromServer); // Print server response
-            }else{
-                scanner.reset();
+        try (Socket socket = new Socket(serverIP, serverPort);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            // Send matrices to server
+            out.writeObject(matrices);
+            System.out.println("Matrices sent to server.");
+
+
+            // Receive result matrix from server
+            int[][] resultMatrix = (int[][]) in.readObject();
+            System.out.println("Received Result Matrix:");
+            //printMatrix(resultMatrix); Uncomment to see the full matrix
+        } catch (ClassNotFoundException e) {
+            System.err.println("Error reading result matrix: " + e.getMessage());
+        }
+    }
+
+    private static int[][] generateMatrix(int size) {
+        Random random = new Random();
+        int[][] matrix = new int[size][size];
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                matrix[i][j] = random.nextInt(10);
             }
         }
-        // closing connections
-        out.close();
-        in.close();
-        routerSocket.close(); // use routerSocket to close the socket connection
-        scanner.close(); // Close the scanner object
+        return matrix;
+    }
+
+    private static void printMatrix(int[][] matrix) {
+        for (int[] row : matrix) {
+            for (int value : row) {
+                System.out.print(value + " ");
+            }
+            System.out.println();
+        }
     }
 }
